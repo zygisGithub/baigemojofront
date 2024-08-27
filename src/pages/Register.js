@@ -17,7 +17,7 @@ function Register() {
         }
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:3001/register', data);
+            const response = await axios.post('http://localhost:3001/api/users/register', data);
             if (response.status === 201) {
                 navigate('/login');
             }
@@ -28,7 +28,7 @@ function Register() {
 
     return (
         <form onSubmit={handleRegister} className="max-w-md mx-auto flex flex-col items-center p-4">
-            <h1>Register</h1>
+            <h1 className='mb-3 text-2xl'>Register</h1>
             <label className="input input-bordered flex items-center gap-2 mb-4">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"

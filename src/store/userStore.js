@@ -1,9 +1,9 @@
-import create from 'zustand';
+import { create } from 'zustand';
 
 const userStore = create((set) => ({
     user: null,
 
-    setUser: (userData) => set({ user: userData }),
+    setUser: (user) => set({ user }),
 
     clearUser: () => set({ user: null }),
 }));
