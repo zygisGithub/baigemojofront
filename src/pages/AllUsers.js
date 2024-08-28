@@ -3,13 +3,15 @@ import axios from 'axios';
 import socket from '../plugins/sockets'; // Import shared socket instance
 import AllChat from "../components/allChat";
 import userStore from "../store/userStore";
+import config from '../plugins/hosted'
+const apiUrl = config.baseUrl;
 
 const AllUsers = () => {
     const [users, setUsers] = useState([]);
     const {user} = userStore()
 
     const getUsers = () => {
-        axios.post('http://localhost:3001/api/users/getUsers')
+        axios.get(`${apiUrl}/api/users/getUsers`)
             .then(response => {
                 console.log(response.data);
                 setUsers(response.data.users)
@@ -32,7 +34,7 @@ const AllUsers = () => {
     }, []);
 
     const sendFriendRequest = (receiverId) => {
-        axios.post('http://localhost:3001/api/users/sendFriendRequest', {
+        axios.post(`${apiUrl}/api/users/sendFriendRequest`, {
             senderId: user._id,
             receiverId
         }).then(response => {

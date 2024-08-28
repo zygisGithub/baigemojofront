@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import {useNavigate} from "react-router-dom";
 import userStore from "../store/userStore";
-
+import config from '../plugins/hosted'
+const apiUrl = config.baseUrl;
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -13,7 +14,7 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:3001/api/users/login', {
+            const response = await axios.post(`${apiUrl}/api/users/login`, {
                 username,
                 password
             });

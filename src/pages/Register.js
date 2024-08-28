@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {data} from "autoprefixer";
-
+import config from '../plugins/hosted'
+const apiUrl = config.baseUrl;
 
 function Register() {
     const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ function Register() {
         }
         e.preventDefault();
         try {
-            const response = await axios.post('http://localhost:3001/api/users/register', data);
+            const response = await axios.post(`${apiUrl}/api/users/register`, data);
             if (response.status === 201) {
                 navigate('/login');
             }

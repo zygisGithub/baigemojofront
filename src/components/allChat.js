@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import userStore from "../store/userStore";
 import socket from '../plugins/sockets'; // Import shared socket instance
+import config from '../plugins/hosted'
+const apiUrl = config.baseUrl;
 
 const AllChat = () => {
     const { user } = userStore();
@@ -10,7 +12,7 @@ const AllChat = () => {
     const chatContainerRef = useRef(null);
 
     useEffect(() => {
-        axios.post('http://localhost:3001/api/users/getMessages')
+        axios.post(`${apiUrl}/api/users/getMessages`)
             .then(response => {
                 setMessages(response.data.messages || []);
             })
@@ -47,7 +49,7 @@ const AllChat = () => {
         const senderPhoto = user.photo;
         const content = currentMessage.current.value;
 
-        axios.post('http://localhost:3001/api/users/sendMessage', {
+        axios.post(`${apiUrl}/api/users/sendMessage`, {
             senderId,
             senderUsername,
             senderPhoto,
@@ -61,7 +63,7 @@ const AllChat = () => {
     };
 
     const handleReact = (messageId, reactionType) => {
-        axios.post('http://localhost:3001/api/users/reactToMessage', {
+        axios.post(`${apiUrl}/api/users/reactToMessage`, {
             messageId,
             userId: user._id,
             reactionType

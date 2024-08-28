@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import socket from '../plugins/sockets'; // Import shared socket instance
 import userStore from '../store/userStore';
 import axios from 'axios'; // Import axios to make API calls
-
+import config from '../plugins/hosted'
+const apiUrl = config.baseUrl;
 const Notifications = () => {
     const { user } = userStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,7 +13,7 @@ const Notifications = () => {
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/api/users/notifications/${user._id}`);
+                const response = await axios.get(`${apiUrl}/api/users/notifications/${user._id}`);
                 setNotifications(response.data.notifications);
                 console.log(response.data)
             } catch (error) {
