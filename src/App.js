@@ -10,67 +10,71 @@ import Chat from './pages/Chat';
 import Toolbar from "./components/toolbar";
 import userStore from "./store/userStore";
 import PrivateRoute from './components/privateRoute';
+import Footer from "./components/footer";
 
 function App() {
     const { user } = userStore();
 
     return (
-        <div className='bg-gray-100 h-dvh'>
+        <div className='min-h-screen flex flex-col'>
             <Router>
                 <Toolbar />
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/login" element={<Login />} />
+                <div className='flex-grow'>
+                    <Routes>
+                        {/* Public Routes */}
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/login" element={<Login />} />
 
-                    {/* Private Routes */}
-                    <Route
-                        path="/profile"
-                        element={
-                            <PrivateRoute>
-                                <Profile />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/"
-                        element={
-                            <PrivateRoute>
-                                <AllUsers />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/user/:username"
-                        element={
-                            <PrivateRoute>
-                                <UserProfile />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/conversations"
-                        element={
-                            <PrivateRoute>
-                                <Conversations />
-                            </PrivateRoute>
-                        }
-                    />
-                    <Route
-                        path="/chat/:conversationId"
-                        element={
-                            <PrivateRoute>
-                                <Chat />
-                            </PrivateRoute>
-                        }
-                    />
+                        {/* Private Routes */}
+                        <Route
+                            path="/profile"
+                            element={
+                                <PrivateRoute>
+                                    <Profile />
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/"
+                            element={
+                                <PrivateRoute>
+                                    <AllUsers />
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/user/:username"
+                            element={
+                                <PrivateRoute>
+                                    <UserProfile />
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/conversations"
+                            element={
+                                <PrivateRoute>
+                                    <Conversations />
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path="/chat/:conversationId"
+                            element={
+                                <PrivateRoute>
+                                    <Chat />
+                                </PrivateRoute>
+                            }
+                        />
 
-                    {/* Redirect any unknown route to login */}
-                    <Route
-                        path="*"
-                        element={<Navigate to={user ? "/" : "/login"} />}
-                    />
-                </Routes>
+                        {/* Redirect any unknown route to login */}
+                        <Route
+                            path="*"
+                            element={<Navigate to={user ? "/" : "/login"} />}
+                        />
+                    </Routes>
+                </div>
+                <Footer />
             </Router>
         </div>
     );

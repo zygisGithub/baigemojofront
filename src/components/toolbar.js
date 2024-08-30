@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import userStore from "../store/userStore";
 import icon from '../images/icon.png';
 import Notifications from "./notifications";
+import socket from "../plugins/sockets";
 
 const Toolbar = () => {
     const { user, clearUser } = userStore();
@@ -14,6 +15,7 @@ const Toolbar = () => {
     function handleLogout() {
         localStorage.removeItem('token');
         clearUser();
+        socket.emit('userOffline', user._id);
         nav('/login');
     }
 

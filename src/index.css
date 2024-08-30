@@ -9,6 +9,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #fff8f8;
+  height: fit-content;
 }
 
 code {
@@ -21,6 +23,9 @@ code {
 }
 
 .reactions-container {
+  position: absolute;
+  bottom: -10px;
+  left: 200px;
   display: flex;
   gap: 5px;
   align-items: center;
@@ -30,7 +35,7 @@ code {
   display: none;
   position: absolute;
   bottom: -30px;
-  left: 0;
+  left: 100px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -60,6 +65,15 @@ code {
   margin-top: 5px;
   font-size: 0.875rem;
   color: #666;
+}
+.fixed {
+  position: fixed;
+}
+.bg-gray-800 {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.z-50 {
+  z-index: 50;
 }
 
 

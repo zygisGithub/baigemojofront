@@ -1,21 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import socket from '../plugins/sockets'; // Import shared socket instance
 import userStore from '../store/userStore';
-import axios from 'axios'; // Import axios to make API calls
-import config from '../plugins/hosted'
+import axios from 'axios';
+import config from '../plugins/hosted';
+import {useNavigate} from "react-router-dom";
+
 const apiUrl = config.baseUrl;
+
 const Notifications = () => {
     const { user } = userStore();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const nav = useNavigate()
 
-    // Fetch existing notifications when the component mounts
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
-                const response = await axios.get(`${apiUrl}/api/users/notifications/${user._id}`);
-                setNotifications(response.data.notifications);
-                console.log(response.data)
+                const response = await axios.post(`${apiUrl}/api/users/notifications/${user._id}`);
+                const fetchedNotifications = response.data.notifications || [];
+                setNotifications(fetchedNotifications);
+                setUnreadCount(fetchedNotifications.filter(n => !n.read).length);
             } catch (error) {
                 console.error('Error fetching notifications:', error);
             }
@@ -24,48 +29,54 @@ const Notifications = () => {
         fetchNotifications();
     }, [user]);
 
-    // Listen for new notifications via socket.io
     useEffect(() => {
-        socket.on('newNotification', (notification) => {
-            if (notification.userId === user._id) {
-                setNotifications((prevNotifications) => [...prevNotifications, notification]);
-            }
-        });
+         const handleNewNotification = async (notification) => {
+            console.log(notification)
+            const response = await axios.post(`${apiUrl}/api/users/notifications/${user._id}`);
+            const fetchedNotifications = response.data.notifications || [];
+            setNotifications(fetchedNotifications);
+            setUnreadCount(fetchedNotifications.filter(n => !n.read).length);
+        };
+
+        socket.on('newNotification', handleNewNotification);
+        socket.on('sendNotification', handleNewNotification);
 
         return () => {
-            socket.off('newNotification');
+            socket.off('newNotification', handleNewNotification);
         };
     }, [user._id]);
 
-    const toggleMenu = () => {
+    const toggleMenu = async () => {
         setIsMenuOpen(!isMenuOpen);
-        console.log(notifications);
+
+        if (!isMenuOpen && unreadCount > 0) {
+            try {
+                await axios.post(`${apiUrl}/api/users/notificationsMarkRead/${user._id}`);
+                setUnreadCount(0);
+            } catch (error) {
+                console.error('Error marking notifications as read:', error);
+            }
+        }
     };
 
     return (
         <div className="relative">
-            <div
-                className="flex text-3xl items-center"
-                onClick={toggleMenu}
-            >
-                <svg className='w-[50px] pt-0' xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0 0 48 48">
-                    <path fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                          d="M38.5,35.5c1.5,0,2.4-1.5,1.8-2.9L38,28.1c-0.3-0.7-0.5-1.5-0.5-2.2V19c0-7.7-6.4-13.8-14.2-13.5	c-5.1,0.2-9.4,3.4-11.5,7.8"></path>
-                    <path fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                          d="M10.5,21.7l0,4.1c0,0.8-0.2,1.5-0.5,2.2l-2.3,4.6C7.1,34,8,35.5,9.5,35.5h21.9"></path>
-                    <path fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
-                          d="M26.9,40.4c-0.8,0.7-1.8,1.1-2.9,1.1c-2.5,0-4.5-2-4.5-4.5"></path>
+            <div className="flex text-3xl items-center cursor-pointer" onClick={toggleMenu}>
+                <svg className="w-[50px] pt-0" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="100" height="100" viewBox="0 0 48 48">
+                    <path fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M38.5,35.5c1.5,0,2.4-1.5,1.8-2.9L38,28.1c-0.3-0.7-0.5-1.5-0.5-2.2V19c0-7.7-6.4-13.8-14.2-13.5c-5.1,0.2-9.4,3.4-11.5,7.8"></path>
+                    <path fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10.5,21.7l0,4.1c0,0.8-0.2,1.5-0.5,2.2l-2.3,4.6C7.1,34,8,35.5,9.5,35.5h21.9"></path>
+                    <path fill="none" stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M26.9,40.4c-0.8,0.7-1.8,1.1-2.9,1.1c-2.5,0-4.5-2-4.5-4.5"></path>
                 </svg>
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                     <span>
-                        ({notifications.length})
+                        ({unreadCount})
                     </span>
                 )}
             </div>
 
             {isMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg">
-                    <div className="p-4">
+                    <div className="p-4 overflow-y-auto h-[500px] overflow-x-hidden">
                         <h3 className="font-bold">Notifications</h3>
                         {notifications.length === 0 ? (
                             <p>No new notifications</p>
@@ -73,8 +84,8 @@ const Notifications = () => {
                             notifications.map((notification, index) => (
                                 <div key={index} className="flex justify-between items-center p-2 border-b">
                                     <p>{notification.content}</p>
-                                    {notification.type === 'request' &&
-                                        <button className="text-sm text-blue-600">Accept</button>
+                                    {notification.type === 'startedChat' || notification.type === 'message' &&
+                                        <button onClick={()=>nav(`chat/${notification.chatId}`)} className="text-sm text-blue-600">Join</button>
                                     }
                                 </div>
                             ))
