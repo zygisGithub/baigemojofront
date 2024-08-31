@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import socket from '../plugins/sockets'; // Import shared socket instance
 import userStore from '../store/userStore';
 import axios from 'axios';
 import config from '../plugins/hosted';
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 
 const apiUrl = config.baseUrl;
 
@@ -12,7 +12,8 @@ const Notifications = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const nav = useNavigate()
+    const nav = useNavigate();
+    const menuRef = useRef(null);
 
     useEffect(() => {
         const fetchNotifications = async () => {
@@ -30,8 +31,8 @@ const Notifications = () => {
     }, [user]);
 
     useEffect(() => {
-         const handleNewNotification = async (notification) => {
-            console.log(notification)
+        const handleNewNotification = async (notification) => {
+            console.log(notification);
             const response = await axios.post(`${apiUrl}/api/users/notifications/${user._id}`);
             const fetchedNotifications = response.data.notifications || [];
             setNotifications(fetchedNotifications);
@@ -43,8 +44,22 @@ const Notifications = () => {
 
         return () => {
             socket.off('newNotification', handleNewNotification);
+            socket.off('sendNotification', handleNewNotification);
         };
     }, [user._id]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const toggleMenu = async () => {
         setIsMenuOpen(!isMenuOpen);
@@ -75,7 +90,10 @@ const Notifications = () => {
             </div>
 
             {isMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg">
+                <div
+                    ref={menuRef}
+                    className="absolute z-10 right-0 mt-2 w-64 bg-white rounded-md shadow-lg"
+                >
                     <div className="p-4 overflow-y-auto h-[500px] overflow-x-hidden">
                         <h3 className="font-bold">Notifications</h3>
                         {notifications.length === 0 ? (
@@ -85,7 +103,7 @@ const Notifications = () => {
                                 <div key={index} className="flex justify-between items-center p-2 border-b">
                                     <p>{notification.content}</p>
                                     {notification.type === 'startedChat' || notification.type === 'message' &&
-                                        <button onClick={()=>nav(`chat/${notification.chatId}`)} className="text-sm text-blue-600">Join</button>
+                                        <button onClick={() => nav(`chat/${notification.chatId}`)} className="text-sm text-blue-600">Join</button>
                                     }
                                 </div>
                             ))

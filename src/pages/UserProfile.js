@@ -19,6 +19,7 @@ const UserProfile = () => {
                 const response = await axios.get(`${apiUrl}/api/users/getUserByUsername/${username}`);
                 setUser(response.data);
                 setLoading(false);
+                console.log(user)
             } catch (error) {
                 setError(error.message);
                 setLoading(false);
@@ -51,8 +52,11 @@ const UserProfile = () => {
 
     return (
         <div>
-            <p>Username: {user.username}</p>
-            <button onClick={startChat}>Chat</button>
+            <div>
+                <p>Username: {user.username}</p>
+                <img src={user.photo} alt=""/>
+            </div>
+            <button onClick={startChat}>Start Chat</button>
         </div>
     );
 };

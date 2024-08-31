@@ -118,7 +118,7 @@ const AllChat = () => {
     };
 
     return (
-        <div className="flex flex-col bg-white rounded-lg shadow-md p-4 h-[100%] max-h-[600px] relative" style={{ flex: '3' }}>
+        <div className="flex flex-col bg-white rounded-lg shadow-md p-4 h-[100%] max-h-[450px] relative" style={{ flex: '3' }}>
             {/* Messages */}
             <div className="flex-grow overflow-y-auto mb-16 h-[100%]">
                 {messages.map((message, index) => {
