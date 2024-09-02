@@ -24,7 +24,29 @@ const Chat = () => {
     const { conversationId } = useParams();
     const messagesEndRef = useRef(null);
     const [chatOwnerId, setChatOwnerId] = useState();
+    const [isParticipant, setIsParticipant] = useState(false);
+    
+    useEffect(() => {
+        const fetchChatDetails = async () => {
+            try {
+                const response = await axios.get(`${apiUrl}/api/users/messages/${conversationId}`);
+                const { participants } = response.data;
 
+                // Check if the current user is a participant
+                const userIsParticipant = participants.some(participant => participant.userId === user._id);
+                setIsParticipant(userIsParticipant);
+
+                if (!userIsParticipant) {
+                    nav('/conversations'); // Redirect if not a participant
+                }
+            } catch (error) {
+                console.error('Error fetching chat details:', error);
+                nav('/conversations'); // Redirect on error
+            }
+        };
+
+        fetchChatDetails();
+    }, [conversationId, user._id, nav]);
     useEffect(() => {
         // Listen for when a new user is added
         const handleUserAdded = ({ chatId, newParticipant }) => {
