@@ -49,12 +49,14 @@ const Toolbar = () => {
                 <div className='flex gap-3 items-center hidden sm:flex'>
                     <img className='w-[50px]' src={icon} alt="logo" />
                 </div>
+                {user && 
                 <button
-                    className='block sm:hidden text-3xl'
-                    onClick={() => setBurgerMenuOpen(!burgerMenuOpen)}
+                className='block sm:hidden text-3xl'
+                onClick={() => setBurgerMenuOpen(!burgerMenuOpen)}
                 >
                     ☰
                 </button>
+                }
             </div>
 
             {/* Desktop Menu */}
