@@ -13,7 +13,6 @@ const AllChat = () => {
     const [activeMessageId, setActiveMessageId] = useState(null); // State for active reaction pop-up
     const chatContainerRef = useRef(null);
     const messagesEndRef = useRef(null);
-
     useEffect(() => {
 
         axios.get(`${apiUrl}/api/users/getMessages`)
@@ -72,12 +71,17 @@ const AllChat = () => {
     }, [messages]);
 
     const sendMessage = async () => {
+        const token = localStorage.getItem('token');
         try {
             const response = await axios.post(`${apiUrl}/api/users/sendMessage`, {
                 senderId: user._id,
                 senderUsername: user.username,
                 senderPhoto: user.photo,
                 content: newMessage
+            },{
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
             });
             socket.emit('sendNotification', response.data.notification);
             setNewMessage('');
@@ -87,16 +91,27 @@ const AllChat = () => {
     };
 
     const handleReact = (messageId, reactionType) => {
-        axios.post(`${apiUrl}/api/users/reactToMessage`, {
-            messageId,
-            userId: user._id,
-            reactionType
+        const token = localStorage.getItem('token'); 
+    
+        axios.post(
+            `${apiUrl}/api/users/reactToMessage`,
+            {
+                messageId,
+                userId: user._id,
+                reactionType
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${token}` 
+                }
+            }
+        )
+        .then(response => {
+            socket.emit('sendNotification', response.data.notification);
         })
-            .then(response => {
-                socket.emit('sendNotification', response.data.notification);
-            })
-            .catch(err => console.error('Error reacting to message:', err));
+        .catch(err => console.error('Error reacting to message:', err));
     };
+    
 
 
     const toggleReactionPopUp = (messageId) => {
@@ -104,7 +119,6 @@ const AllChat = () => {
     };
 
     const renderReactionPopUp = (messageId, senderId) => {
-        // Only render reaction pop-up if the message sender is not the current user
         if (senderId === user._id) {
             return null;
         }
@@ -116,7 +130,7 @@ const AllChat = () => {
                         key={reaction}
                         onClick={() => {
                             handleReact(messageId, reaction);
-                            setActiveMessageId(null); // Close the pop-up after reacting
+                            setActiveMessageId(null);
                         }}
                         className="hover:bg-gray-200 p-2 rounded-full"
                     >
@@ -141,7 +155,7 @@ const AllChat = () => {
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Prevents the default behavior of adding a new line
+            e.preventDefault(); 
             sendMessage();
         }
     };

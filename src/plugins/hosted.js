@@ -1,9 +1,9 @@
 
 const LOCAL_URL = 'http://localhost:3001';
-const NGROK_URL = 'https://backendserver.loca.lt';
+const SERVER_URL = 'http://93.115.23.193:3001';
 const LOCAL_NET = 'http://192.168.0.141:3001'
 
-const baseUrl = LOCAL_NET;
+const baseUrl = SERVER_URL;
 
 module.exports = {
     baseUrl

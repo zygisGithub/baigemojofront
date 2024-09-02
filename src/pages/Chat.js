@@ -206,37 +206,57 @@ const Chat = () => {
     }, [isTyping]);
 
     const sendMessage = async () => {
+        const token = localStorage.getItem('token')
         try {
-            const response = await axios.post(`${apiUrl}/api/users/sendMessageChat`, {
-                chatId: conversationId,
-                senderId: user._id,
-                content: newMessage,
-            });
-
+            const response = await axios.post(
+                `${apiUrl}/api/users/sendMessageChat`,
+                {
+                    chatId: conversationId,
+                    senderId: user._id,
+                    content: newMessage,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`, 
+                        'Content-Type': 'application/json',   
+                    },
+                }
+            );
+    
             response.data.notifications.forEach(notification => {
                 socket.emit('sendNotification', notification);
             });
-
+    
             setNewMessage('');
         } catch (error) {
             console.error('Error sending message:', error);
         }
     };
-
+    
     const handleAddUser = async (userId) => {
+        const token = localStorage.getItem('token')
         try {
-            const response = await axios.post(`${apiUrl}/api/users/addParticipants`, {
-                chatId: conversationId,
-                newParticipant: [userId],
-                user: user,
-            });
-
+            const response = await axios.post(
+                `${apiUrl}/api/users/addParticipants`,
+                {
+                    chatId: conversationId,
+                    newParticipant: [userId],
+                    user: user,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`, // Replace userToken with your token variable
+                        'Content-Type': 'application/json',   // Optional, but often needed
+                    },
+                }
+            );
+    
             socket.emit('sendNotification', response.data.notification);
-
         } catch (error) {
             console.error('Error adding user:', error);
         }
     };
+    
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
@@ -249,37 +269,35 @@ const Chat = () => {
     );
 
     const sendReaction = async (messageId, reactionType) => {
+        const token = localStorage.getItem('token')
         try {
-            // Check if the user has already reacted to this message
             const existingReaction = messages.find(msg => msg._id === messageId)?.reacts.find(r => r.users.includes(user._id));
-
-            if (existingReaction && existingReaction.type === reactionType) {
-                await axios.post(`${apiUrl}/api/users/reactToMessageConversation`, {
-                    messageId,
-                    userId: user._id,
-                    reaction: null,
-                    username: user.username,
-                    conversationId: conversationId
-                })
-                    .then(res => {
-                        socket.emit('sendNotification', res.data.notification);
-                    });
-            } else {
-                await axios.post(`${apiUrl}/api/users/reactToMessageConversation`, {
-                    messageId,
-                    userId: user._id,
-                    reaction: reactionType,
-                    username: user.username,
-                    conversationId: conversationId
-                })
-                    .then(res => {
-                        socket.emit('sendNotification', res.data.notification);
-                    });
-            }
+    
+            const requestData = {
+                messageId,
+                userId: user._id,
+                reaction: existingReaction && existingReaction.type === reactionType ? null : reactionType,
+                username: user.username,
+                conversationId: conversationId
+            };
+    
+            const response = await axios.post(
+                `${apiUrl}/api/users/reactToMessageConversation`,
+                requestData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',  
+                    },
+                }
+            );
+    
+            socket.emit('sendNotification', response.data.notification);
         } catch (error) {
             console.error('Error reacting to message:', error);
         }
     };
+    
 
     const toggleReactionPopUp = (messageId) => {
         setActiveMessageId(activeMessageId === messageId ? null : messageId);
@@ -372,7 +390,7 @@ const Chat = () => {
                                     <img onClick={() => nav(`/user/${x.username}`)} className={`rounded-full w-[40px] h-[40px] ${onlineUsers.includes(x._id) ? 'border-primary border-2' : ''}`} src={x.photo} alt="" />
                                     <p onClick={() => nav(`/user/${x.username}`)} className="text-lg">{x.username} {onlineUsers.includes(x._id) && <span className="text-green-500">Active</span>}</p>
                                     <button
-                                        className="ml-auto bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition-colors"
+                                        className="ml-auto bg-green-500 text-white px-1 py-1 rounded-lg hover:bg-green-600 transition-colors"
                                         onClick={() => handleAddUser(x._id)}
                                     >
                                         Add to chat
@@ -469,7 +487,7 @@ const Chat = () => {
                             <p onClick={() => nav(`/user/${x.username}`)} className="text-lg">{x.username} {onlineUsers.includes(x.userId) && <span className="text-green-500">Active</span>}</p>
                             {x.username === user.username && x.userId !== chatOwnerId &&
                                 <button
-                                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                                    className="bg-red-500 text-white px-2 py-2 rounded-lg hover:bg-red-600 transition-colors"
                                     onClick={handleLeaveChat}
                                 >
                                     Leave Chat
@@ -477,7 +495,7 @@ const Chat = () => {
                             }
                             {x.userId === chatOwnerId && user._id === chatOwnerId && (
                                 <button
-                                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                                    className="bg-red-600 text-white px-2 py-2 rounded-lg hover:bg-red-700 transition-colors"
                                     onClick={handleDeleteChat}
                                 >
                                     Delete Chat

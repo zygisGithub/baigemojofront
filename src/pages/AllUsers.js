@@ -111,7 +111,7 @@ const AllUsers = () => {
                                                 onClick={() => nav(`user/${x.username}`)}
                                                 className='btn bg-blue-500 text-white py-1 px-3 rounded'
                                             >
-                                                Visit profile
+                                                Visit
                                             </button>
                                         }
                                     </div>

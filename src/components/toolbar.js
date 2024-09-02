@@ -106,7 +106,7 @@ const Toolbar = () => {
 
             {/* Burger Menu */}
             {burgerMenuOpen && (
-                <div className='absolute top-32 left-[20px] w-[70%] bg-white shadow-lg py-2 z-20 sm:hidden' ref={burgerMenuRef}>
+                <div className='absolute top-24 left-[20px] w-[70%] bg-white shadow-lg py-2 z-20 sm:hidden' ref={burgerMenuRef}>
                     {user && (
                         <>
                             <button
