@@ -15,19 +15,39 @@ const AllChat = () => {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        // Fetch initial messages
+
         axios.get(`${apiUrl}/api/users/getMessages`)
             .then(response => {
                 setMessages(response.data.messages || []);
             })
             .catch(err => console.error('Error fetching messages:', err));
 
-        // Handle new messages
+        const livePhotoChange = ({ userId, photoUrl }) => {
+            setMessages(prevMessages =>
+                prevMessages.map(msg => {
+                    if (msg.sender && msg.sender.senderId === userId) {
+                        return { ...msg, sender: { ...msg.sender, senderPhoto: photoUrl } };
+                    }
+                    return msg;
+                })
+            );
+        };
+        const liveUsernameChange = ({ userId, newUsername }) => {
+            setMessages(prevMessages =>
+                prevMessages.map(msg => {
+                    if (msg.sender && msg.sender.senderId === userId) {
+                        return { ...msg, sender: { ...msg.sender, senderUsername: newUsername } };
+                    }
+                    return msg;
+                })
+            );
+        };
         socket.on('newMessage', (message) => {
             setMessages(prevMessages => [...prevMessages, message]);
         });
+        socket.on('profilePhotoChanged',livePhotoChange)
+        socket.on('profileUsernameChanged',liveUsernameChange)
 
-        // Handle message updates
         socket.on('messageUpdated', (message) => {
             setMessages(prevMessages => {
                 const updatedMessages = prevMessages.map(msg =>
@@ -38,6 +58,8 @@ const AllChat = () => {
         });
 
         return () => {
+            socket.off('profileUsernameChanged')
+            socket.off('profilePhotoChanged')
             socket.off('newMessage');
             socket.off('messageUpdated');
         };
@@ -117,8 +139,14 @@ const AllChat = () => {
         return reactionSummary;
     };
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevents the default behavior of adding a new line
+            sendMessage();
+        }
+    };
     return (
-        <div className="flex flex-col bg-white rounded-lg shadow-md p-4 h-[100%] max-h-[450px] relative" style={{ flex: '3' }}>
+        <div className="flex flex-col bg-white rounded-lg shadow-md p-4 md:max-h-full max-h-[600px]   relative" style={{ flex: '3' }}>
             {/* Messages */}
             <div className="flex-grow overflow-y-auto mb-16 h-[100%]">
                 {messages.map((message, index) => {
@@ -178,6 +206,7 @@ const AllChat = () => {
                         value={newMessage}
                         placeholder="Type a message..."
                         onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyDown={handleKeyDown}
                     />
                     <button
                         className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 transition-colors"

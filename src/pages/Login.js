@@ -1,18 +1,28 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import {useNavigate} from "react-router-dom";
-import userStore from "../store/userStore";
-import config from '../plugins/hosted'
+import { useNavigate } from 'react-router-dom';
+import userStore from '../store/userStore';
+import config from '../plugins/hosted';
+
 const apiUrl = config.baseUrl;
+
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const nav = useNavigate()
-    const {setUser, user} = userStore()
+    const [errors, setErrors] = useState([]); // Changed from a single error to an array
+    const nav = useNavigate();
+    const { setUser, user } = userStore();
+
+    useEffect(() => {
+        if (user) {
+            nav('/profile');
+        }
+    }, [user, nav]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setErrors([]); // Clear previous errors
+
         try {
             const response = await axios.post(`${apiUrl}/api/users/login`, {
                 username,
@@ -23,17 +33,23 @@ const Login = () => {
 
             if (response.status === 200) {
                 localStorage.setItem('token', data.token);
-                setUser(data.user)
-                nav('/')
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setUser(data.user);
+                nav('/profile');
             }
         } catch (error) {
+            let errorMessages = [];
+
             if (error.response) {
-                setError(error.response.data.message);
+
+                errorMessages = error.response.data.errors || [error.response.data.message || 'An unknown error occurred'];
             } else if (error.request) {
-                setError('No response from the server.');
+                errorMessages = ['No response from the server.'];
             } else {
-                setError('Error setting up the request.');
+                errorMessages = ['Error setting up the request.'];
             }
+
+            setErrors(errorMessages);
         }
     };
 
@@ -74,7 +90,13 @@ const Login = () => {
                     />
                 </label>
 
-                {error && <p className="text-red-500 mb-4">{error}</p>}
+                {errors.length > 0 && (
+                    <div className="text-red-500 mb-4 text-center">
+                        {errors.map((error, index) => (
+                            <p key={index}>{error}</p>
+                        ))}
+                    </div>
+                )}
 
                 <button type="submit" className="btn w-full btn-primary">
                     Login

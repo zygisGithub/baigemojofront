@@ -4,13 +4,13 @@ import config from '../plugins/hosted';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import userStore from '../store/userStore';
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 
 const apiUrl = config.baseUrl;
 const socket = io(apiUrl);
 
 const Chat = () => {
-    const nav = useNavigate()
+    const nav = useNavigate();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [showAddUserModal, setShowAddUserModal] = useState(true);
@@ -23,25 +23,22 @@ const Chat = () => {
     const { user } = userStore();
     const { conversationId } = useParams();
     const messagesEndRef = useRef(null);
-    const [chatOwnerId, setChatOwnerId] = useState()
+    const [chatOwnerId, setChatOwnerId] = useState();
 
     useEffect(() => {
-        console.log(chatOwnerId)
-        const handleReactionUpdated = (message) => {
-            setMessages((prevMessages) =>
-                prevMessages.map((msg) =>
-                    msg._id === message._id ? message : msg
-                )
-            );
+        // Listen for when a new user is added
+        const handleUserAdded = ({ chatId, newParticipant }) => {
+            if (conversationId === chatId) {
+                setParticipants(prevParticipants => [...prevParticipants, newParticipant]);
+            }
         };
 
-        socket.on('reactionUpdated', handleReactionUpdated);
+        socket.on('userAdded', handleUserAdded);
 
         return () => {
-            socket.off('reactionUpdated', handleReactionUpdated);
+            socket.off('userAdded', handleUserAdded);
         };
-    }, []);
-
+    }, [conversationId]);
 
     useEffect(() => {
         const handleUserLeft = ({ chatId, userId }) => {
@@ -52,14 +49,75 @@ const Chat = () => {
             }
         };
 
+        // Listening for the 'chatDeleted' event
         const handleChatDeleted = (chatId) => {
             if (conversationId === chatId) {
-                nav('/conversations')
+                nav('/conversations');  // Redirect to the conversations list
             }
         };
 
         socket.on('userLeft', handleUserLeft);
         socket.on('chatDeleted', handleChatDeleted);
+
+        return () => {
+            socket.off('userLeft', handleUserLeft);
+            socket.off('chatDeleted', handleChatDeleted);
+        };
+    }, [conversationId, nav]);
+
+    useEffect(() => {
+        const handleReactionUpdated = (message) => {
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) =>
+                    msg._id === message._id ? message : msg
+                )
+            );
+        };
+
+        socket.on('profileUsernameChanged', ({ userId, newUsername }) => {
+            setUsers(users => users.map(user => user._id === userId ? { ...user, username: newUsername } : user));
+        });
+
+        socket.on('profilePhotoChanged', ({ userId, photoUrl }) => {
+            setUsers(users => users.map(user => user._id === userId ? { ...user, photo: photoUrl } : user));
+        });
+
+        socket.on('reactionUpdated', handleReactionUpdated);
+
+        return () => {
+            socket.off('reactionUpdated', handleReactionUpdated);
+        };
+    }, []);
+
+    useEffect(() => {
+
+        const livePhotoChange = ({ userId, photoUrl }) => {
+            setParticipants((prevParticipants) =>
+                prevParticipants.map((p) =>
+                    p.userId === userId ? { ...p, photo: photoUrl } : p
+                )
+            );
+
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) =>
+                    msg.senderId === userId ? { ...msg, senderPhoto: photoUrl } : msg
+                )
+            );
+        };
+
+        const liveUsernameChange = ({ userId, newUsername }) => {
+            setParticipants((prevParticipants) =>
+                prevParticipants.map((p) =>
+                    p.userId === userId ? { ...p, username: newUsername } : p
+                )
+            );
+
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) =>
+                    msg.senderId === userId ? { ...msg, senderUsername: newUsername } : msg
+                )
+            );
+        };
 
         if (user) {
             socket.emit('userOnline', user._id);
@@ -71,8 +129,7 @@ const Chat = () => {
                 const response = await axios.get(`${apiUrl}/api/users/messages/${conversationId}`);
                 setMessages(response.data.messages);
                 setParticipants(response.data.participants);
-                setChatOwnerId(response.data.creatorId)
-                console.log(response)
+                setChatOwnerId(response.data.creatorId);
             } catch (error) {
                 console.error('Error fetching messages:', error);
             }
@@ -87,38 +144,43 @@ const Chat = () => {
             }
         };
 
-        const handleNewUser = () => fetchUsers();
-        const handleAddUser = (chatId) => {
+        const handleAddUserSocket = (chatId) => {
             if (chatId === conversationId) {
                 fetchUsers();
                 axios.get(`${apiUrl}/api/users/messages/${conversationId}`)
-                    .then(res => setParticipants(res.data.participants))
+                    .then(res => {
+                        setParticipants(res.data.participants)
+                    })
+
                     .catch(error => console.error('Error fetching participants:', error));
             }
         };
+
         const handleNewMessage = (message) => {
             if (message.chatId === conversationId) {
                 setMessages((prevMessages) => [...prevMessages, message]);
             }
         };
+
         const handleUpdateOnlineUsers = (userIds) => {
             setOnlineUsers(userIds);
         };
 
-        socket.on('newUser', handleNewUser);
-        socket.on('addUser', handleAddUser);
+        socket.on('profilePhotoChanged', livePhotoChange);
+        socket.on('profileUsernameChanged', liveUsernameChange);
+        socket.on('newUser', fetchUsers);
+        socket.on('addUser', handleAddUserSocket);
         socket.on('newMessage', handleNewMessage);
         socket.on('updateOnlineUsers', handleUpdateOnlineUsers);
 
         fetchMessages();
 
         return () => {
-            socket.emit('leaveChat', conversationId);
+            socket.off('profileUsernameChanged');
             socket.off('newMessage');
             socket.off('addUser');
             socket.off('newUser');
-            socket.off('userLeft', handleUserLeft);
-            socket.off('chatDeleted', handleChatDeleted);
+            socket.off('profilePhotoChanged');
         };
     }, [conversationId, user]);
 
@@ -170,8 +232,7 @@ const Chat = () => {
             });
 
             socket.emit('sendNotification', response.data.notification);
-            socket.emit('addUser', conversationId);
-            setShowAddUserModal(false);
+
         } catch (error) {
             console.error('Error adding user:', error);
         }
@@ -192,37 +253,33 @@ const Chat = () => {
             // Check if the user has already reacted to this message
             const existingReaction = messages.find(msg => msg._id === messageId)?.reacts.find(r => r.users.includes(user._id));
 
-
             if (existingReaction && existingReaction.type === reactionType) {
                 await axios.post(`${apiUrl}/api/users/reactToMessageConversation`, {
                     messageId,
                     userId: user._id,
                     reaction: null,
-                    username: user.username
+                    username: user.username,
+                    conversationId: conversationId
                 })
                     .then(res => {
-                        socket.emit('sendNotification', res.data.notification)
-                        console.log(res)
-                    })
+                        socket.emit('sendNotification', res.data.notification);
+                    });
             } else {
-
                 await axios.post(`${apiUrl}/api/users/reactToMessageConversation`, {
                     messageId,
                     userId: user._id,
                     reaction: reactionType,
-                    username: user.username
+                    username: user.username,
+                    conversationId: conversationId
                 })
                     .then(res => {
-                        socket.emit('sendNotification', res.data.notification)
-                        console.log(res)
-                    })
+                        socket.emit('sendNotification', res.data.notification);
+                    });
             }
         } catch (error) {
             console.error('Error reacting to message:', error);
         }
     };
-
-
 
     const toggleReactionPopUp = (messageId) => {
         setActiveMessageId(activeMessageId === messageId ? null : messageId);
@@ -250,18 +307,19 @@ const Chat = () => {
             </div>
         );
     };
+
     const handleLeaveChat = async () => {
         try {
             await axios.post(`${apiUrl}/api/users/leaveChat`, {
                 chatId: conversationId,
                 userId: user._id,
             });
-            // Redirect to conversations page
-            nav('/conversations')
+            nav('/conversations');
         } catch (error) {
             console.error('Error leaving chat:', error);
         }
     };
+
     const handleDeleteChat = async () => {
         try {
             await axios.post(`${apiUrl}/api/users/deleteChat`, {
@@ -269,7 +327,7 @@ const Chat = () => {
                 userId: user._id,
             });
             // Redirect to conversations page
-            nav('/conversations')
+            nav('/conversations');
         } catch (error) {
             console.error('Error deleting chat:', error);
         }
@@ -287,6 +345,13 @@ const Chat = () => {
         return reactionSummary;
     };
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevents the default behavior of adding a new line
+            sendMessage();
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen md:flex-row gap-8 mb-4">
             {/* Users Section */}
@@ -300,12 +365,12 @@ const Chat = () => {
                     onChange={handleSearchChange}
                 />
                 {searchTerm && (
-                    <div className="overflow-y-auto  sm:h-full max-h-[500px]">
+                    <div className="overflow-y-auto sm:h-full max-h-[500px]">
                         {filteredUsers.length > 0 ? (
                             filteredUsers.map((x) => (
                                 <div key={x._id} className="flex items-center gap-3 mb-4">
-                                    <img className={`rounded-full w-[40px] h-[40px] ${onlineUsers.includes(x._id) ? 'border-primary border-2' : ''}`} src={x.photo} alt="" />
-                                    <p className="text-lg">{x.username} {onlineUsers.includes(x._id) && <span className="text-green-500">Active</span>}</p>
+                                    <img onClick={() => nav(`/user/${x.username}`)} className={`rounded-full w-[40px] h-[40px] ${onlineUsers.includes(x._id) ? 'border-primary border-2' : ''}`} src={x.photo} alt="" />
+                                    <p onClick={() => nav(`/user/${x.username}`)} className="text-lg">{x.username} {onlineUsers.includes(x._id) && <span className="text-green-500">Active</span>}</p>
                                     <button
                                         className="ml-auto bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition-colors"
                                         onClick={() => handleAddUser(x._id)}
@@ -322,9 +387,9 @@ const Chat = () => {
             </div>
 
             {/* Chat Section */}
-            <div className="flex flex-col bg-white rounded-lg shadow-md p-4 flex-1 relative">
+            <div className="flex flex-col bg-white rounded-lg shadow-md p-4 flex-1 relative sm:max-h-full max-h-[500px]">
                 {/* Messages */}
-                <div className="flex-grow overflow-y-auto mb-16 sm:h-full max-h-[500px]">
+                <div className="flex-grow overflow-y-auto mb-16 sm:h-full ">
                     {messages.map((msg, index) => {
                         const isSameSenderAsPrevious = index > 0 && messages[index - 1].senderId === msg.senderId;
                         const isActive = activeMessageId === msg._id;
@@ -382,6 +447,7 @@ const Chat = () => {
                             value={newMessage}
                             placeholder="Type a message..."
                             onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyDown={handleKeyDown}
                         />
                         <button
                             className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600 transition-colors"
@@ -389,8 +455,6 @@ const Chat = () => {
                         >
                             Send
                         </button>
-
-
                     </div>
                 </div>
             </div>
@@ -398,11 +462,11 @@ const Chat = () => {
             {/* Participants Section */}
             <div className="flex flex-col bg-gray-50 rounded-lg shadow-md p-4 md:w-1/4">
                 <h2 className="text-xl font-semibold mb-4">Participants</h2>
-                <div className="overflow-y-auto  sm:h-full max-h-[500px]">
+                <div className="overflow-y-auto sm:h-full max-h-[500px]">
                     {participants.map((x, i) => (
                         <div key={i} className="flex items-center gap-3 mb-4">
-                            <img className={`rounded-full w-[40px] h-[40px] ${onlineUsers.includes(x.userId) ? 'border-primary border-2' : ''}`} src={x.photo} alt="" />
-                            <p className="text-lg">{x.username} {onlineUsers.includes(x.userId) && <span className="text-green-500">Active</span>}</p>
+                            <img onClick={() => nav(`/user/${x.username}`)} className={`rounded-full w-[40px] h-[40px] ${onlineUsers.includes(x.userId) ? 'border-primary border-2' : ''}`} src={x.photo} alt="" />
+                            <p onClick={() => nav(`/user/${x.username}`)} className="text-lg">{x.username} {onlineUsers.includes(x.userId) && <span className="text-green-500">Active</span>}</p>
                             {x.username === user.username && x.userId !== chatOwnerId &&
                                 <button
                                     className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
@@ -411,7 +475,7 @@ const Chat = () => {
                                     Leave Chat
                                 </button>
                             }
-                            {x.userId === chatOwnerId && user._id === chatOwnerId &&  (
+                            {x.userId === chatOwnerId && user._id === chatOwnerId && (
                                 <button
                                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                                     onClick={handleDeleteChat}

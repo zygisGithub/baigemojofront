@@ -4,16 +4,5 @@ import config from './hosted';
 
 const socket = io(config.baseUrl);
 
-socket.on('connect', () => {
-    console.log('Connected to socket server');
-});
-
-socket.on('connect_error', (err) => {
-    console.error('Connection error:', err.message);
-});
-
-socket.on('disconnect', () => {
-    console.log('Disconnected from socket server');
-});
 
 export default socket;

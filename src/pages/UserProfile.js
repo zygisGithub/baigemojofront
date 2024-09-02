@@ -10,6 +10,8 @@ const UserProfile = () => {
     const [user, setUser] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState(null);
+    const [showModal, setShowModal] = React.useState(false);
+    const [chatName, setChatName] = React.useState('');
     const { username } = useParams();
     const navigate = useNavigate();
 
@@ -19,7 +21,6 @@ const UserProfile = () => {
                 const response = await axios.get(`${apiUrl}/api/users/getUserByUsername/${username}`);
                 setUser(response.data);
                 setLoading(false);
-                console.log(user)
             } catch (error) {
                 setError(error.message);
                 setLoading(false);
@@ -27,21 +28,51 @@ const UserProfile = () => {
         };
 
         fetchUser();
-    }, [username]);
 
-    const startChat = async () => {
+        // Listen to the profilePhotoChanged event
+        socket.on('profilePhotoChanged', ({ userId, photoUrl }) => {
+            if (user && user._id === userId) {
+                setUser(prevState => ({
+                    ...prevState,
+                    photo: photoUrl
+                }));
+            }
+        });
+
+        // Cleanup the event listener on unmount
+        return () => {
+            socket.off('profilePhotoChanged');
+        };
+    }, [username, user]);
+
+    const handleStartChatClick = () => {
+        setShowModal(true);
+    };
+
+    const handleCloseModal = (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            setShowModal(false);
+        }
+    };
+
+    const handleChatNameChange = (e) => {
+        setChatName(e.target.value);
+    };
+
+    const handleStartChat = async () => {
+        if (!chatName.trim()) return;
+
         try {
-            // Retrieve token from local storage
             const token = localStorage.getItem('token');
-
             const response = await axios.post(
                 `${apiUrl}/api/users/startChat`,
-                { userId: user._id },
-                { headers: { Authorization: `Bearer ${token}` } } // Include token in headers
+                { userId: user._id, chatName },
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-            socket.emit('sendNotification', response.data.notification)
+            socket.emit('sendNotification', response.data.notification);
             const chatId = response.data.chat._id;
             navigate(`/chat/${chatId}`);
+            setShowModal(false);
         } catch (error) {
             console.error('Error starting chat:', error);
         }
@@ -52,11 +83,26 @@ const UserProfile = () => {
 
     return (
         <div>
-            <div>
-                <p>Username: {user.username}</p>
-                <img src={user.photo} alt=""/>
+            <div className='flex items-center gap-8 flex-col'>
+                <p className='text-5xl'>{user.username}</p>
+                <img className='rounded-full w-32 h-32 object-cover border-4 border-gray-300 shadow-md' src={user.photo} alt="Profile"/>
+                <button className='btn btn-primary' onClick={handleStartChatClick}>Start Chat</button>
             </div>
-            <button onClick={startChat}>Start Chat</button>
+
+            {showModal && (
+                <div className='modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center' onClick={handleCloseModal}>
+                    <div className='modal-container bg-white p-8 rounded shadow-lg' onClick={e => e.stopPropagation()}>
+                        <input
+                            type="text"
+                            placeholder="Type chat name here"
+                            className="input input-bordered w-full max-w-xs mb-4"
+                            value={chatName}
+                            onChange={handleChatNameChange}
+                        />
+                        <button className='btn btn-primary' onClick={handleStartChat}>Start Chat</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

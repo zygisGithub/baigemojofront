@@ -32,7 +32,6 @@ const Notifications = () => {
 
     useEffect(() => {
         const handleNewNotification = async (notification) => {
-            console.log(notification);
             const response = await axios.post(`${apiUrl}/api/users/notifications/${user._id}`);
             const fetchedNotifications = response.data.notifications || [];
             setNotifications(fetchedNotifications);
@@ -101,9 +100,15 @@ const Notifications = () => {
                         ) : (
                             notifications.map((notification, index) => (
                                 <div key={index} className="flex justify-between items-center p-2 border-b">
-                                    <p>{notification.content}</p>
-                                    {notification.type === 'startedChat' || notification.type === 'message' &&
-                                        <button onClick={() => nav(`chat/${notification.chatId}`)} className="text-sm text-blue-600">Join</button>
+                                    <div>
+                                        <p>{notification.content}</p>
+                                        <time className="text-xs text-gray-500 ml-2">
+                                            {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString()}
+                                        </time>
+                                    </div>
+                                    {notification.chatId &&
+                                        <button onClick={() => nav(`chat/${notification.chatId}`)}
+                                                className="text-sm text-blue-600">Join</button>
                                     }
                                 </div>
                             ))

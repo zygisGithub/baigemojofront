@@ -10,11 +10,25 @@ import Chat from './pages/Chat';
 import Toolbar from "./components/toolbar";
 import userStore from "./store/userStore";
 import PrivateRoute from './components/privateRoute';
-import Footer from "./components/footer";
+import {useEffect} from "react";
 
 function App() {
-    const { user } = userStore();
+    const { user, setUser } = userStore();
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userString = localStorage.getItem('user');
 
+        if (token) {
+            if (userString) {
+                try {
+                    const parsedUser = JSON.parse(userString);
+                    setUser(parsedUser);
+                } catch (error) {
+                    console.error('Failed to parse user data:', error);
+                }
+            }
+        }
+    }, [setUser]);
     return (
         <div className='min-h-screen flex flex-col'>
             <Router>
@@ -74,7 +88,6 @@ function App() {
                         />
                     </Routes>
                 </div>
-                <Footer />
             </Router>
         </div>
     );

@@ -6,6 +6,13 @@ const userStore = create((set) => ({
     setUser: (user) => set({ user }),
 
     clearUser: () => set({ user: null }),
+
+    updateUserPhoto: (photo) => set((state) => ({
+        user: {
+            ...state.user,
+            photo
+        }
+    })),
 }));
 
 export default userStore;

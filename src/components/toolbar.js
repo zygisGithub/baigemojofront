@@ -43,7 +43,7 @@ const Toolbar = () => {
     }
 
     return (
-        <div className='flex justify-between p-5 mb-8 bg-white shadow-lg relative items-center'>
+        <div className='flex justify-between p-5 max-h-[80px] mb-8 bg-white shadow-lg relative items-center'>
             {/* Logo and Burger Menu Button */}
             <div className='flex gap-3 items-center'>
                 <div className='flex gap-3 items-center hidden sm:flex'>
@@ -76,7 +76,7 @@ const Toolbar = () => {
                             onClick={() => setMenuOpen(!menuOpen)}
                         >
                             <p className='text-3xl'>{user.username}</p>
-                            <img className='w-[50px] border-4 border-primary rounded-full' src={user.photo} alt="user" />
+                            <img className='w-[50px] h-[50px] border-4 border-primary rounded-full' src={user.photo} alt="user" />
                         </div>
                         <Notifications />
                         {menuOpen && (
