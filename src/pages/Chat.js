@@ -430,7 +430,7 @@ const Chat = () => {
                                 <div className={`pl-[60px] ${isSameSenderAsPrevious ? 'mt-[-5px]' : ''}`}>
                                     <div className="relative">
                                         <p
-                                            className="bg-gray-100 p-3 rounded-lg shadow-sm inline-block cursor-pointer"
+                                            className="bg-gray-100 p-3 rounded-lg shadow-sm inline-block cursor-pointer break-words"
                                             onClick={() => toggleReactionPopUp(msg._id)}
                                         >
                                             {msg.content}

@@ -76,6 +76,10 @@ code {
 .z-50 {
   z-index: 50;
 }
+.break-words {
+  word-break: break-word; /* Ensures long words break onto the next line */
+  overflow-wrap: break-word; /* Wraps long words to avoid overflow */
+}
 
 
 
