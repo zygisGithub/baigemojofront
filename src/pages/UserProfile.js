@@ -16,6 +16,9 @@ const UserProfile = () => {
     const navigate = useNavigate();
 
     React.useEffect(() => {
+        if (user) {
+            socket.emit('userOnline', user._id);
+        }
         const fetchUser = async () => {
             try {
                 const response = await axios.get(`${apiUrl}/api/users/getUserByUsername/${username}`);
