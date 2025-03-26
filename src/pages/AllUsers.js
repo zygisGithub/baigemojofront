@@ -65,13 +65,20 @@ const AllUsers = () => {
     // Filter out the current user from the list
     const filteredUsers = users
         .filter(u => u._id !== user._id)
-        .filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase()));
+        .filter(u => u.username && u.username.toLowerCase().includes(searchQuery.toLowerCase()))
 
     // Determine if the user is typing
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
         setShowUsers(e.target.value.length > 0);
     };
+
+    useEffect(() => {
+        if (users.length) {
+            console.log('Users with missing usernames:', users.filter(u => !u.username));
+        }
+    }, [users]);
+
 
     return (
         <div className='flex p-4 gap-3 flex-col md:flex-row h-screen'>
